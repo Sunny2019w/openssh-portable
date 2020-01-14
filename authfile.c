@@ -1,4 +1,4 @@
-/* $OpenBSD: authfile.c,v 1.134 2019/08/05 11:50:33 dtucker Exp $ */
+/* $OpenBSD: authfile.c,v 1.136 2020/01/02 22:38:33 djm Exp $ */
 /*
  * Copyright (c) 2000, 2013 Markus Friedl.  All rights reserved.
  *
@@ -528,3 +528,56 @@ sshkey_check_revoked(struct sshkey *key, const char *revoked_keys_file)
 	}
 }
 
+/*
+ * Advanced *cpp past the end of key options, defined as the first unquoted
+ * whitespace character. Returns 0 on success or -1 on failure (e.g.
+ * unterminated quotes).
+ */
+int
+sshkey_advance_past_options(char **cpp)
+{
+	char *cp = *cpp;
+	int quoted = 0;
+
+	for (; *cp && (quoted || (*cp != ' ' && *cp != '\t')); cp++) {
+		if (*cp == '\\' && cp[1] == '"')
+			cp++;	/* Skip both */
+		else if (*cp == '"')
+			quoted = !quoted;
+	}
+	*cpp = cp;
+	/* return failure for unterminated quotes */
+	return (*cp == '\0' && quoted) ? -1 : 0;
+}
+
+/* Save a public key */
+int
+sshkey_save_public(const struct sshkey *key, const char *path,
+    const char *comment)
+{
+	int fd, oerrno;
+	FILE *f = NULL;
+	int r = SSH_ERR_INTERNAL_ERROR;
+
+	if ((fd = open(path, O_WRONLY|O_CREAT|O_TRUNC, 0644)) == -1)
+		return SSH_ERR_SYSTEM_ERROR;
+	if ((f = fdopen(fd, "w")) == NULL) {
+		r = SSH_ERR_SYSTEM_ERROR;
+		goto fail;
+	}
+	if ((r = sshkey_write(key, f)) != 0)
+		goto fail;
+	fprintf(f, " %s\n", comment);
+	if (ferror(f) || fclose(f) != 0) {
+		r = SSH_ERR_SYSTEM_ERROR;
+ fail:
+		oerrno = errno;
+		if (f != NULL)
+			fclose(f);
+		else
+			close(fd);
+		errno = oerrno;
+		return r;
+	}
+	return 0;
+}

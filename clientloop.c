@@ -1,4 +1,4 @@
-/* $OpenBSD: clientloop.c,v 1.327 2019/07/24 08:57:00 mestre Exp $ */
+/* $OpenBSD: clientloop.c,v 1.330 2019/12/21 02:19:13 djm Exp $ */
 /*
  * Author: Tatu Ylonen <ylo@cs.hut.fi>
  * Copyright (c) 1995 Tatu Ylonen <ylo@cs.hut.fi>, Espoo, Finland
@@ -77,10 +77,10 @@
 #include <paths.h>
 #endif
 #include <signal.h>
-#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 #include <termios.h>
 #include <pwd.h>
 #include <unistd.h>
@@ -133,6 +133,12 @@ extern int muxserver_sock; /* XXX use mux_client_cleanup() instead */
  * configuration file.
  */
 extern char *host;
+
+/*
+ * If this field is not NULL, the ForwardAgent socket is this path and different
+ * instead of SSH_AUTH_SOCK.
+ */
+extern char *forward_agent_sock_path;
 
 /*
  * Flag to indicate that we have received a window change signal which has
@@ -1618,7 +1624,12 @@ client_request_agent(struct ssh *ssh, const char *request_type, int rchan)
 		    "malicious server.");
 		return NULL;
 	}
-	if ((r = ssh_get_authentication_socket(&sock)) != 0) {
+	if (forward_agent_sock_path == NULL) {
+		r = ssh_get_authentication_socket(&sock);
+	} else {
+		r = ssh_get_authentication_socket_path(forward_agent_sock_path, &sock);
+	}
+	if (r != 0) {
 		if (r != SSH_ERR_AGENT_NOT_PRESENT)
 			debug("%s: ssh_get_authentication_socket: %s",
 			    __func__, ssh_err(r));
@@ -2003,7 +2014,8 @@ client_global_hostkeys_private_confirm(struct ssh *ssh, int type,
 		    sshkey_type_plain(ctx->keys[i]->type) == KEY_RSA;
 		if ((r = sshkey_verify(ctx->keys[i], sig, siglen,
 		    sshbuf_ptr(signdata), sshbuf_len(signdata),
-		    use_kexsigtype ? ssh->kex->hostkey_alg : NULL, 0)) != 0) {
+		    use_kexsigtype ? ssh->kex->hostkey_alg : NULL, 0,
+		    NULL)) != 0) {
 			error("%s: server gave bad signature for %s key %zu",
 			    __func__, sshkey_type(ctx->keys[i]), i);
 			goto out;

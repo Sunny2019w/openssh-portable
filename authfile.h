@@ -1,4 +1,4 @@
-/* $OpenBSD: authfile.h,v 1.22 2019/08/05 11:50:33 dtucker Exp $ */
+/* $OpenBSD: authfile.h,v 1.24 2020/01/02 22:38:33 djm Exp $ */
 
 /*
  * Copyright (c) 2000, 2013 Markus Friedl.  All rights reserved.
@@ -48,5 +48,8 @@ int sshkey_load_private_type_fd(int fd, int type, const char *passphrase,
 int sshkey_perm_ok(int, const char *);
 int sshkey_in_file(struct sshkey *, const char *, int, int);
 int sshkey_check_revoked(struct sshkey *key, const char *revoked_keys_file);
+int sshkey_advance_past_options(char **cpp);
+int sshkey_save_public(const struct sshkey *key, const char *path,
+    const char *comment);
 
 #endif

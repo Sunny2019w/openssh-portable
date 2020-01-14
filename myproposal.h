@@ -1,4 +1,4 @@
-/* $OpenBSD: myproposal.h,v 1.58 2019/02/23 08:20:43 djm Exp $ */
+/* $OpenBSD: myproposal.h,v 1.64 2019/12/16 03:16:58 djm Exp $ */
 
 /*
  * Copyright (c) 2000 Markus Friedl.  All rights reserved.
@@ -24,40 +24,46 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifdef WITH_OPENSSL
 #include <openssl/opensslv.h>
+#endif
 
 /* conditional algorithm support */
 
 #ifdef OPENSSL_HAS_ECC
-#ifdef OPENSSL_HAS_NISTP521
-# define KEX_ECDH_METHODS \
+# ifdef OPENSSL_HAS_NISTP521
+#  define KEX_ECDH_METHODS \
 	"ecdh-sha2-nistp256," \
 	"ecdh-sha2-nistp384," \
 	"ecdh-sha2-nistp521,"
-# define HOSTKEY_ECDSA_CERT_METHODS \
+#  define HOSTKEY_ECDSA_CERT_METHODS \
 	"ecdsa-sha2-nistp256-cert-v01@openssh.com," \
 	"ecdsa-sha2-nistp384-cert-v01@openssh.com," \
-	"ecdsa-sha2-nistp521-cert-v01@openssh.com,"
-# define HOSTKEY_ECDSA_METHODS \
+	"ecdsa-sha2-nistp521-cert-v01@openssh.com," \
+	"sk-ecdsa-sha2-nistp256-cert-v01@openssh.com,"
+#  define HOSTKEY_ECDSA_METHODS \
 	"ecdsa-sha2-nistp256," \
 	"ecdsa-sha2-nistp384," \
-	"ecdsa-sha2-nistp521,"
-#else
-# define KEX_ECDH_METHODS \
+	"ecdsa-sha2-nistp521," \
+	"sk-ecdsa-sha2-nistp256@openssh.com,"
+# else /* OPENSSL_HAS_NISTP521 */
+#  define KEX_ECDH_METHODS \
 	"ecdh-sha2-nistp256," \
 	"ecdh-sha2-nistp384,"
-# define HOSTKEY_ECDSA_CERT_METHODS \
+#  define HOSTKEY_ECDSA_CERT_METHODS \
 	"ecdsa-sha2-nistp256-cert-v01@openssh.com," \
-	"ecdsa-sha2-nistp384-cert-v01@openssh.com,"
-# define HOSTKEY_ECDSA_METHODS \
+	"ecdsa-sha2-nistp384-cert-v01@openssh.com," \
+	"sk-ecdsa-sha2-nistp256-cert-v01@openssh.com,"
+#  define HOSTKEY_ECDSA_METHODS \
 	"ecdsa-sha2-nistp256," \
-	"ecdsa-sha2-nistp384,"
-#endif
-#else
+	"ecdsa-sha2-nistp384," \
+	"sk-ecdsa-sha2-nistp256@openssh.com,"
+# endif /* OPENSSL_HAS_NISTP521 */
+#else /* OPENSSL_HAS_ECC */
 # define KEX_ECDH_METHODS
 # define HOSTKEY_ECDSA_CERT_METHODS
 # define HOSTKEY_ECDSA_METHODS
-#endif
+#endif /* OPENSSL_HAS_ECC */
 
 #ifdef OPENSSL_HAVE_EVPGCM
 # define AESGCM_CIPHER_MODES \
@@ -102,11 +108,13 @@
 #define	KEX_DEFAULT_PK_ALG	\
 	HOSTKEY_ECDSA_CERT_METHODS \
 	"ssh-ed25519-cert-v01@openssh.com," \
+	"sk-ssh-ed25519-cert-v01@openssh.com," \
 	"rsa-sha2-512-cert-v01@openssh.com," \
 	"rsa-sha2-256-cert-v01@openssh.com," \
 	"ssh-rsa-cert-v01@openssh.com," \
 	HOSTKEY_ECDSA_METHODS \
 	"ssh-ed25519," \
+	"sk-ssh-ed25519@openssh.com," \
 	"rsa-sha2-512," \
 	"rsa-sha2-256," \
 	"ssh-rsa"
@@ -138,6 +146,7 @@
 #define	SSH_ALLOWED_CA_SIGALGS	\
 	HOSTKEY_ECDSA_METHODS \
 	"ssh-ed25519," \
+	"sk-ssh-ed25519@openssh.com," \
 	"rsa-sha2-512," \
 	"rsa-sha2-256," \
 	"ssh-rsa"
@@ -169,7 +178,7 @@
 #define	KEX_CLIENT_ENCRYPT KEX_SERVER_ENCRYPT
 #define KEX_CLIENT_MAC KEX_SERVER_MAC
 
-#define	SSH_ALLOWED_CA_SIGALGS	"ssh-ed25519"
+#define	SSH_ALLOWED_CA_SIGALGS	"ssh-ed25519,sk-ssh-ed25519@openssh.com"
 
 #endif /* WITH_OPENSSL */
 
